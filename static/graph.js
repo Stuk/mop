@@ -4,7 +4,7 @@ var width = 960,
     height = 500;
 
 var force = d3.layout.force()
-    .charge(-250)
+    .charge(-2000)
     .size([width, height]);
 
 var svg = d3.select("#chart").append("svg")
