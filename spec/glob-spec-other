@@ -1,0 +1,93 @@
+/*global describe,before,it,expect,after */
+
+var Glob = require("../lib/glob");
+
+describe("Glob", function() {
+
+    describe("file name", function() {
+        var match = Glob.makeMatcher("/root", ["test"]);
+
+        it("matches file", function() {
+            expect(match("/root/test")).toBe(true);
+        });
+
+        it("does not match child file", function() {
+            expect(match("/root/test/child")).toBe(false);
+        });
+
+        it("does not match above root", function() {
+            expect(match("/test")).toBe(false);
+        });
+
+        it("does not match other name", function() {
+            expect(match("/root/test2")).toBe(false);
+        });
+    });
+
+    describe("*", function() {
+        var match = Glob.makeMatcher("/root", ["*"]);
+
+        it("matches direct child file", function() {
+            expect(match("/root/test")).toBe(true);
+            expect(match("/root/test2")).toBe(true);
+            expect(match("/root/a_.xy.sda")).toBe(true);
+        });
+
+        it("does not match hidden (dot) files", function() {
+            expect(match("/root/.test")).toBe(false);
+        });
+
+        it("does not match child file", function() {
+            expect(match("/root/test/child")).toBe(false);
+        });
+
+        it("does not match above root", function() {
+            expect(match("/test")).toBe(false);
+        });
+    });
+
+    describe("**", function() {
+        var match = Glob.makeMatcher("/root", ["**"]);
+
+        it("matches direct child file", function() {
+            expect(match("/root/test")).toBe(true);
+            expect(match("/root/test2")).toBe(true);
+            expect(match("/root/a_.xy.sda")).toBe(true);
+        });
+
+        it("does not match hidden (dot) files", function() {
+            expect(match("/root/.test")).toBe(false);
+        });
+
+        it("does not match child file", function() {
+            expect(match("/root/test/child")).toBe(false);
+        });
+
+        it("does not match above root", function() {
+            expect(match("/test")).toBe(false);
+        });
+    });
+
+    describe("**/*", function() {
+        var match = Glob.makeMatcher("/root", ["**/*"]);
+
+        it("does not match direct child file", function() {
+            expect(match("/root/test")).toBe(false);
+            expect(match("/root/test2")).toBe(false);
+            expect(match("/root/a_.xy.sda")).toBe(false);
+        });
+
+        it("matches child file", function() {
+            expect(match("/root/test/child")).toBe(true);
+        });
+
+        it("does not match hidden (dot) files", function() {
+            expect(match("/root/test/.child")).toBe(false);
+        });
+
+        it("does not match above root", function() {
+            expect(match("/test")).toBe(false);
+        });
+    });
+
+});
