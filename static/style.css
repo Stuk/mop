@@ -4,17 +4,37 @@ body {
     color: #222;
 }
 
-.node circle {
-  stroke: #fff;
+path.link {
+  fill: none;
+  stroke: #666;
   stroke-width: 1.5px;
 }
 
-line.link {
-  stroke: #999;
-  stroke-opacity: .6;
+marker#licensing {
+  fill: green;
 }
 
-.node text {
-    text-shadow: 1px 1px 0 #FFF;
-    fill: #222;
+path.link.licensing {
+  stroke: green;
+}
+
+path.link.resolved {
+  stroke-dasharray: 0,2 1;
+}
+
+circle {
+  fill: #ccc;
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+text {
+  font: 10px sans-serif;
+  pointer-events: none;
+}
+
+text.shadow {
+  stroke: #fff;
+  stroke-width: 3px;
+  stroke-opacity: .8;
 }
