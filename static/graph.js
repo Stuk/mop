@@ -3,14 +3,16 @@
 d3.json("data.json", function(data) {
     var nodes = data.nodes, links = data.links;
 
-    var w = 960,
-        h = 500;
+    var color = d3.scale.category20();
+
+    var w = 2000,
+        h = 2000;
 
     var force = d3.layout.force()
         .nodes(nodes)
         .links(links)
         .size([w, h])
-        .linkDistance(60)
+        .linkDistance(200)
         .charge(-300)
         .on("tick", tick)
         .start();
@@ -43,6 +45,7 @@ d3.json("data.json", function(data) {
         .data(force.nodes())
       .enter().append("svg:circle")
         .attr("r", 6)
+        .style("fill", function(d, i) { return color(d.subPackage); })
         .call(force.drag);
 
     var text = svg.append("svg:g").selectAll("g")
