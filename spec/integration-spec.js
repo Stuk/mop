@@ -6,22 +6,29 @@ var Q = require("q");
 
 var optimize = require("../optimize");
 
+var DEBUG = false;
 var TIMEOUT = 30000;
 
 describe("mopping", function () {
 
     describe("Mr", function () {
         [
-            "simple"
+            "simple",
+            "module"
         ].forEach(function (name) {
             it(name, function (done) {
+                var self = this;
+
                 var location = PATH.join(__dirname, "fixtures", name);
-                test(name, location, done);
+                test(name, location, done).
+                fail(function (error) {
+                    self.fail(error);
+                })
+                .finally(done);
             }, TIMEOUT);
         });
     });
 });
-
 
 /**
  * Wrap executing a command in a promise
@@ -34,11 +41,11 @@ function exec(command, args, cwd) {
     var deferred = Q.defer();
     var proc = spawn(command, args, {
         cwd: cwd,
-        stdio: "inherit"
+        stdio: DEBUG ? "inherit" : "ignore"
     });
     proc.on('exit', function(code) {
         if (code !== 0) {
-            deferred.reject(new Error(command + " " + args.join(" ") + " in " + location + " exited with code " + location));
+            deferred.reject(new Error(command + " " + args.join(" ") + " in " + location + " exited with code " + code));
         } else {
             deferred.resolve();
         }
@@ -50,14 +57,16 @@ function exec(command, args, cwd) {
 function npmSetup(location) {
     var nodeModulesPath = PATH.join(location, "node_modules");
     return FS.removeTree(nodeModulesPath)
+    // swallow failure for when node_modules does not exist
+    .fail(function () {})
     .then(function () {
-        return FS.makeDirectory(nodeModulesPath).fail(function () {});
+        return FS.makeDirectory(nodeModulesPath);
     })
     .then(function () {
         // copy Mr and Montage into the node_modules
         return Q.all([
-            FS.copyTree("node_modules/mr", PATH.join(location, "node_modules", "mr")),
-            FS.copyTree("node_modules/montage", PATH.join(location, "node_modules", "montage"))
+            FS.copyTree("node_modules/mr", PATH.join(nodeModulesPath, "mr")),
+            FS.copyTree("node_modules/montage", PATH.join(nodeModulesPath, "montage"))
         ]);
     })
     .then(function () {
@@ -83,7 +92,9 @@ function serve(location) {
 
     var serverPort = server.node.address().port;
     var serverUrl = "http://127.0.0.1:" + serverPort + "/";
-    console.log("Serving", location, "at", serverUrl);
+    if (DEBUG) {
+        console.log("Serving", location, "at", serverUrl);
+    }
 
     return [server, serverUrl];
 }
@@ -96,7 +107,7 @@ function phantom() {
     var wd = require("wd");
 
     var phantomProc = spawn("phantomjs", ["--webdriver=127.0.0.1:8910"], {
-        stdio: "inherit"
+        stdio: DEBUG ? "inherit" : "ignore"
     });
 
     var browser = wd.promiseRemote("127.0.0.1", 8910);
@@ -145,12 +156,17 @@ function run(browser, url) {
     });
 }
 
-function test(name, location, done) {
+function test(name, location) {
     var buildLocation = PATH.join(location, "builds", name);
 
-    npmSetup(location)
+    var config = {
+        // If debug pass undefined so we get default output, otherwise disable
+        out: DEBUG ? void 0 : {}
+    };
+
+    return npmSetup(location)
     .then(function () {
-        return optimize(location);
+        return optimize(location, config);
     })
     .then(function () {
         var value = serve(buildLocation),
@@ -167,12 +183,5 @@ function test(name, location, done) {
     })
     .then(function (error) {
         expect(error).toBe(null);
-    })
-    .fail(function (error) {
-        expect(false).toBe(true);
-        console.error(error.stack);
-    })
-    .finally(function () {
-        done();
     });
 }
