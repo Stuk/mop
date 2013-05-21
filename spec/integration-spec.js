@@ -1,9 +1,12 @@
 /*global describe,it,expect */
 var spawn = require("child_process").spawn;
+var FS = require("q-io/fs");
 var PATH = require("path");
 var Q = require("q");
 
 var optimize = require("../optimize");
+
+var TIMEOUT = 30000;
 
 describe("mopping", function () {
 
@@ -14,27 +17,53 @@ describe("mopping", function () {
             it(name, function (done) {
                 var location = PATH.join(__dirname, "fixtures", name);
                 test(name, location, done);
-            });
+            }, TIMEOUT);
         });
     });
 });
 
 
-// Wrap shelling out to `npm install` in a promise
-function npmInstall(location) {
+/**
+ * Wrap executing a command in a promise
+ * @param  {string} command command to execute
+ * @param  {Array<string>} args    Arguments to the command.
+ * @param  {string} cwd     The working directory to run the command in.
+ * @return {Promise}        A promise for the completion of the command.
+ */
+function exec(command, args, cwd) {
     var deferred = Q.defer();
-    var proc = spawn("npm", ["install"], {
-        cwd: location,
+    var proc = spawn(command, args, {
+        cwd: cwd,
         stdio: "inherit"
     });
     proc.on('exit', function(code) {
         if (code !== 0) {
-            deferred.reject(new Error("npm install in " + location + " exited with code " + location));
+            deferred.reject(new Error(command + " " + args.join(" ") + " in " + location + " exited with code " + location));
         } else {
             deferred.resolve();
         }
     });
     return deferred.promise;
+}
+
+// Wrap shelling removing node_modules and running `npm install` in a promise.
+function npmSetup(location) {
+    var nodeModulesPath = PATH.join(location, "node_modules");
+    return FS.removeTree(nodeModulesPath)
+    .then(function () {
+        return FS.makeDirectory(nodeModulesPath).fail(function () {});
+    })
+    .then(function () {
+        // copy Mr and Montage into the node_modules
+        return Q.all([
+            FS.copyTree("node_modules/mr", PATH.join(location, "node_modules", "mr")),
+            FS.copyTree("node_modules/montage", PATH.join(location, "node_modules", "montage"))
+        ]);
+    })
+    .then(function () {
+        // install any other dependencies
+        return exec("npm", ["install"], location);
+    });
 }
 
 /**
@@ -119,7 +148,7 @@ function run(browser, url) {
 function test(name, location, done) {
     var buildLocation = PATH.join(location, "builds", name);
 
-    npmInstall(location)
+    npmSetup(location)
     .then(function () {
         return optimize(location);
     })
