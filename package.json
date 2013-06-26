@@ -10,7 +10,8 @@
   ],
   "main": "optimize.js",
   "scripts": {
-    "test": "istanbul test jasmine-node -- spec"
+    "test": "istanbul test jasmine-node -- spec",
+    "integration": "istanbul test jasmine-node -- --matchall spec/integration.js"
   },
   "dependencies": {
     "montage": "~0.13.0",

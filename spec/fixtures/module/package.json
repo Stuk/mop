@@ -3,6 +3,6 @@
   "version": "0.0.0",
   "private": "true",
   "dependencies": {
-    "mr": "git://github.com/montagejs/mr.git"
+    "mr": "*"
   }
 }
